@@ -10,9 +10,7 @@ char filename[256];
 char *contentFetch(char * filename){
     uint64_t size;
     DeltaCode = fopen(filename, "r");
-    if(DeltaCode == NULL) {
-        return (char *) 0;
-    }
+    if(DeltaCode == NULL)return (char *) 0;
     fseek(DeltaCode, 0L, SEEK_END);
     size = ftell(DeltaCode);
     fseek(DeltaCode, 0L, SEEK_SET);
