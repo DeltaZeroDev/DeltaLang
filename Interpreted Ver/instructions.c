@@ -12,7 +12,7 @@ long long int MOD(long long int inp1, long long int inp2) {return(inp1%inp2);};
 long long int RND(long long int inp1, long long int inp2) {return(rand() % inp2 + inp1);};
 
 const  int instructAmmount = 7;
-char *mathsinstructionList[7] = {"ADD", "SUB", "DIV", "MUL", "MOD", "RND", "MOV"};
+char *intructionList[7] = {"ADD", "SUB", "DIV", "MUL", "MOD", "RND", "MOV"};
 typedef long long int (*Maths_instruction)(long long int, long long int);
 Maths_instruction MathsInstruct[6] = {ADD, SUB, DIV, MUL, MOD, RND};
 
@@ -68,7 +68,7 @@ void linked_init() {
     bottom = list;
     list->address = NULL;
     memset(list->name, 0, 100);
-    linked_extend("$RAX", 2); linked_extend("$RBX", 0); linked_extend("$RIP", 0); // Hard setting registers
+    linked_extend("$RAX", 0); linked_extend("$RBX", 0); linked_extend("$RIP", 0); // Hard setting registers
 }
 
 // The horror
@@ -90,26 +90,25 @@ int Exec(char *Contents) {
         currentLine++;
         linked_find("$RIP")->data++; // Increment current process, since $RIP = (int) currentLine
         for(int i=0; i < instructAmmount; i++){ // This is dumb, InstructAmount is actually the amount of instructions in the largest instructionset, but who cares
-            firstInput = strchr(temp, ' ');
-
+            firstInput = strchr(temp, ' '); // set firstInput to everything after the instruction
+            char * instruct = malloc(strlen(temp) + 2);
+            strcpy(instruct, temp);
             // Instructions that do maths
-            size = firstInput - temp;
-            if (memcmp(temp, mathsinstructionList[i], size) == 0 && i < 6) { // memcmp checks the line INCLUDING the null terminators, so you have to give a length, which is `size`
+            size = firstInput - temp; // set length of instruction
+            if (memcmp(temp, intructionList[i], size) == 0 && i < 6) { // &&i<6 for maths instructions
                 /*
                 WARNING!!!
                 THIS CODE IS FUCKING HORRIBLE, YOU MAY NEED THERAPY AFTER READING IT
                 */
-                firstInput++;
-                secondInput = strchr(firstInput, ' ');
+                firstInput++; // Get rid of space at the start of firstInput
+                secondInput = strchr(firstInput, ' '); // Second input is everything after first input, including space
                 if ((firstInput == NULL || firstInput[1] == '\0')  || (secondInput == NULL || secondInput[1] == '\0')){ // SegFault handler
                     printf("Segmentation fault! (NULL pointer dereference) at line %d in instruction \"%s\"! (this instruction requires 2 inputs)\n", currentLine, temp);
                     return -1; 
                 }
 
-                *secondInput= '\0';
-                char * instruct = malloc(strlen(temp) + 2);
-                strcpy(instruct, temp); // temp gets mangled when handling instruction, so this is just for better interpretor errors
-                secondInput++;
+                *secondInput= '\0'; // null terminator, ends first input
+                secondInput++; // so that secondInput isn't just NULL
                 long long int input1;
                 long long int input2;
 
@@ -123,41 +122,40 @@ int Exec(char *Contents) {
                     } else {input1 = atoi(firstInput);}
                 } else {input1 = atoi(firstInput); input2 = atoi(secondInput);}
 
-
                 // Last bit of error handling and execution
                 if ((i == 2 && input2 == 0) || (i == 4 && input2 == 0)){
                     printf("Floating point execption! (Div/Mod by zero error) at line %d in instruction \"%s\"!\n", currentLine, instruct);
                     return -1;
                 }
-                linked_find("$RAX")->data = MathsInstruct[i](input1, input2);
-                printf("%s - %ld\n", instruct, linked_find("$RAX")->data);
+                linked_find("$RAX")->data = MathsInstruct[i](input1, input2); // Transfer RAX's value to the linked list
+                printf("%s - %ld\n", instruct, linked_find("$RAX")->data); // This will be deleted later after OUT instruction is made
                 isValid = 1;
-                free(instruct);
+                free(instruct); // Memory leak who?
             }
 
             // Instructions that mutate variables/registers
-            if (i == 6){ // special case for MOV
-                if (memcmp(temp, mathsinstructionList[i], size) == 0){
+            if (i == 6){ // special case for MOV rn
+                if (memcmp(temp, intructionList[i], size) == 0){
                     firstInput++;
                     secondInput = strchr(firstInput, ' ');
                     *secondInput= '\0';
                     secondInput++;
-                    if ((firstInput == NULL || firstInput[1] == '\0')  || (secondInput == NULL || secondInput[1] == '\0')){ // SegFault handler
-                        printf("Segmentation fault! (NULL pointer dereference) at line %d in instruction \"%s\"! (this instruction requires 2 inputs)\n", currentLine, temp);
+                    if (firstInput == NULL   || secondInput == NULL){ // SegFault handler
+                        printf("Segmentation fault! (NULL pointer dereference) at line %d in instruction \"%s\"! (this instruction requires 2 inputs)\n", currentLine, instruct);
                         return -1; 
                     }
                     if (linked_find(firstInput) == NULL){
-                        printf("Error: Cannot mutate a non variable! At line %d in instruction \"%s\"!\n", currentLine, temp);
+                        printf("Error: Cannot mutate a non variable! At line %d in instruction \"%s\"!\n", currentLine, instruct);
                         return -1;
                     }
                     if (linked_find(secondInput) != NULL) {linked_find(firstInput)->data = linked_find(secondInput)->data;} else {linked_find(firstInput)->data = atoi(secondInput);}
                     secondInput++;
-                    printf("%s - %ld\n",temp, linked_find(firstInput)->data);
+                    printf("%s - %ld\n",instruct, linked_find(firstInput)->data); // Deleted when OUT is made
                     isValid = 1;
                 }
             }
             if((i == 7) && (isValid == 0)){
-                printf("Invalid instruction at line %d!; \"%s\" is an unknown instruction!\n", currentLine, temp);
+                printf("Invalid instruction at line %d!; \"%s\" is an unknown instruction!\n", currentLine, instruct);
                 return -1;
             }
             if (i == 6) isValid = 0;

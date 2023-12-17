@@ -6,7 +6,6 @@
 
 FILE *DeltaCode;
 char filename[256];
-
 char *contentFetch(char * filename){
     uint64_t size;
     DeltaCode = fopen(filename, "r");
