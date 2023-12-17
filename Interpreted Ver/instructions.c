@@ -3,16 +3,18 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <time.h>
 long long int ADD(long long int inp1, long long int inp2) {return(inp1+inp2);};
 long long int SUB(long long int inp1, long long int inp2) {return(inp1-inp2);};
 long long int DIV(long long int inp1, long long int inp2) {return(inp1/inp2);};
 long long int MUL(long long int inp1, long long int inp2) {return(inp1*inp2);};
 long long int MOD(long long int inp1, long long int inp2) {return(inp1%inp2);};
+long long int RND(long long int inp1, long long int inp2) {return(rand() % inp2 + inp1);};
 
-const  int instructAmmount = 6;
-char *mathsinstructionList[6] = {"ADD", "SUB", "DIV", "MUL", "MOD", "MOV"};
+const  int instructAmmount = 7;
+char *mathsinstructionList[7] = {"ADD", "SUB", "DIV", "MUL", "MOD", "RND", "MOV"};
 typedef long long int (*Maths_instruction)(long long int, long long int);
-Maths_instruction MathsInstruct[5] = {ADD, SUB, DIV, MUL, MOD};
+Maths_instruction MathsInstruct[6] = {ADD, SUB, DIV, MUL, MOD, RND};
 
 // Variable handling shit, linked lists hurt my head
 struct linked_t {
@@ -66,12 +68,12 @@ void linked_init() {
     bottom = list;
     list->address = NULL;
     memset(list->name, 0, 100);
-    linked_extend("$RAX", 0); linked_extend("$RIP", 0); // Hard setting registers
+    linked_extend("$RAX", 2); linked_extend("$RBX", 0); linked_extend("$RIP", 0); // Hard setting registers
 }
-
 
 // The horror
 int Exec(char *Contents) {
+    srand (time(NULL));
     linked_init(); // Initialise variable linked list
     // Define vars;
     char *temp = Contents;
@@ -85,102 +87,80 @@ int Exec(char *Contents) {
         int isValid = 0;
         char * next = strchr(temp, '\n'); // strchr returns mem ADDRESS of the next character, NOT INDEX!!!!!!
         if (next) *next = '\0';
-        currentLine++;   
+        currentLine++;
         linked_find("$RIP")->data++; // Increment current process, since $RIP = (int) currentLine
         for(int i=0; i < instructAmmount; i++){ // This is dumb, InstructAmount is actually the amount of instructions in the largest instructionset, but who cares
             firstInput = strchr(temp, ' ');
 
             // Instructions that do maths
             size = firstInput - temp;
-            if (memcmp(temp, mathsinstructionList[i], size) == 0) { // memcmp checks the line INCLUDING the null terminators, so you have to give a length, which is `size`
+            if (memcmp(temp, mathsinstructionList[i], size) == 0 && i < 6) { // memcmp checks the line INCLUDING the null terminators, so you have to give a length, which is `size`
                 /*
                 WARNING!!!
                 THIS CODE IS FUCKING HORRIBLE, YOU MAY NEED THERAPY AFTER READING IT
                 */
                 firstInput++;
-                if (firstInput == NULL || firstInput[1] == '\0') { // SegFault handler
-                    printf("Segmentation fault! (NULL pointer dereference) at line %d in instruction \"%s\"! (this instruction requires 2 inputs, you have none)\n", currentLine, temp);
+                secondInput = strchr(firstInput, ' ');
+                if ((firstInput == NULL || firstInput[1] == '\0')  || (secondInput == NULL || secondInput[1] == '\0')){ // SegFault handler
+                    printf("Segmentation fault! (NULL pointer dereference) at line %d in instruction \"%s\"! (this instruction requires 2 inputs)\n", currentLine, temp);
                     return -1; 
                 }
+
+                *secondInput= '\0';
                 char * instruct = malloc(strlen(temp) + 2);
                 strcpy(instruct, temp); // temp gets mangled when handling instruction, so this is just for better interpretor errors
-                secondInput = strchr(firstInput, ' ');
-                // Error handling:
-                if (secondInput == NULL) {
-                    printf("Segmentation fault! (NULL pointer dereference) at line %d in instruction \"%s\"! (this instruction requires 2 inputs, you gave 1)\n", currentLine, temp);
-                    return -1;
-                }
-                *secondInput= '\0'; // split first and second input
                 secondInput++;
                 long long int input1;
                 long long int input2;
-                if (linked_find(firstInput) != NULL){
+
+                // Variable handling
+                if (linked_find(firstInput) != NULL  || linked_find(secondInput) != NULL){ // For some reason if input1 is " " it thinks it's in the linked list, but if firstinput is " ", this is technically the correct error
                     if (linked_find(secondInput) != NULL){
                         input2 = linked_find(secondInput)->data;
-                    }else{
-                        for (int i = 0; i < strlen(secondInput); i++) {
-                            if (isdigit(secondInput[i]) == 0) {
-                                printf("Error! index %d in second input on line %d in instruction \"%s\" is a non digit!\n", i, currentLine, instruct);
-                                return -1;
-                            }
-                        }
-                    }
-                    input1 = linked_find(firstInput)->data;
-                }else{
-                    for (int i = 0; i < strlen(firstInput); i++) {
-                        if (isdigit(firstInput[i]) == 0) {
-                            printf("Error! index %d in first input on line %d in instruction \"%s\" is a non digit!\n", i, currentLine, instruct);
-                            return -1;
-                        }
-                    }
-                    for (int i = 0; i < strlen(secondInput); i++) {
-                        if (isdigit(secondInput[i]) == 0) {
-                            printf("Error! index %d in second input on line %d in instruction \"%s\" is a non digit!\n", i, currentLine, instruct);
-                            return -1;
-                        }
-                    }
-                // redefining inputs as their value, but as correct type
-                    input1 = atoi(firstInput);
-                    input2 = atoi(secondInput);
-                }
+                    } else {input2 = atoi(secondInput);}
+                    if (linked_find(firstInput) != NULL){
+                        input1 = linked_find(firstInput)->data;
+                    } else {input1 = atoi(firstInput);}
+                } else {input1 = atoi(firstInput); input2 = atoi(secondInput);}
+
+
                 // Last bit of error handling and execution
                 if ((i == 2 && input2 == 0) || (i == 4 && input2 == 0)){
                     printf("Floating point execption! (Div/Mod by zero error) at line %d in instruction \"%s\"!\n", currentLine, instruct);
                     return -1;
                 }
-                RAX = MathsInstruct[i](input1, input2);
-                printf("%lld\n", RAX);
+                linked_find("$RAX")->data = MathsInstruct[i](input1, input2);
+                printf("%s - %ld\n", instruct, linked_find("$RAX")->data);
                 isValid = 1;
                 free(instruct);
             }
 
             // Instructions that mutate variables/registers
-            if (i > 4){
+            if (i == 6){ // special case for MOV
                 if (memcmp(temp, mathsinstructionList[i], size) == 0){
                     firstInput++;
-                    if (firstInput == NULL || firstInput[1] == '\0') {
-                        printf("3 Segmentation fault! (NULL pointer dereference) at line %d in instruction \"%s\"! (this instruction requires 2 inputs, you have none)\n", currentLine, temp);
-                        return -1; 
-                    }
-                    char * instruct = malloc(strlen(temp) + 2);
-                    strcpy(instruct, temp);
                     secondInput = strchr(firstInput, ' ');
-                    // Error handling:
-                    if (secondInput == NULL) {
-                        printf("4 Segmentation fault! (NULL pointer dereference) at line %d in instruction \"%s\"! (this instruction requires 2 inputs, you gave 1)\n", currentLine, temp);
-                        return -1;
-                    }
                     *secondInput= '\0';
                     secondInput++;
+                    if ((firstInput == NULL || firstInput[1] == '\0')  || (secondInput == NULL || secondInput[1] == '\0')){ // SegFault handler
+                        printf("Segmentation fault! (NULL pointer dereference) at line %d in instruction \"%s\"! (this instruction requires 2 inputs)\n", currentLine, temp);
+                        return -1; 
+                    }
+                    if (linked_find(firstInput) == NULL){
+                        printf("Error: Cannot mutate a non variable! At line %d in instruction \"%s\"!\n", currentLine, temp);
+                        return -1;
+                    }
+                    if (linked_find(secondInput) != NULL) {linked_find(firstInput)->data = linked_find(secondInput)->data;} else {linked_find(firstInput)->data = atoi(secondInput);}
+                    secondInput++;
+                    printf("%s - %ld\n",temp, linked_find(firstInput)->data);
                     isValid = 1;
-
                 }
             }
-            if((i == 4) && (isValid == 0)){
+            if((i == 7) && (isValid == 0)){
                 printf("Invalid instruction at line %d!; \"%s\" is an unknown instruction!\n", currentLine, temp);
                 return -1;
             }
-            if (i == 4) isValid = 0;
+            if (i == 6) isValid = 0;
         }
         if (next) *next = '\n';
         temp = next ? (next+1) : NULL;

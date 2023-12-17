@@ -30,7 +30,6 @@ int main(){
         printf("File does not exist!\n");
         return 0;
     }
-    printf("%s\n", Contents);
     rv = Exec(Contents);
     free(Contents);
     return 0;
