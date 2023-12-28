@@ -4,16 +4,17 @@
 #include <math.h>
 #include <ctype.h>
 #include <time.h>
-long long int ADD(long long int inp1, long long int inp2) {return(inp1+inp2);};
-long long int SUB(long long int inp1, long long int inp2) {return(inp1-inp2);};
-long long int DIV(long long int inp1, long long int inp2) {return(inp1/inp2);};
-long long int MUL(long long int inp1, long long int inp2) {return(inp1*inp2);};
-long long int MOD(long long int inp1, long long int inp2) {return(inp1%inp2);};
-long long int RND(long long int inp1, long long int inp2) {return(rand() % inp2 + inp1);};
+#include <stdint.h>
+int64_t ADD(int64_t inp1, int64_t inp2) {return(inp1+inp2);};
+int64_t SUB(int64_t inp1, int64_t inp2) {return(inp1-inp2);};
+int64_t DIV(int64_t inp1, int64_t inp2) {return(inp1/inp2);};
+int64_t MUL(int64_t inp1, int64_t inp2) {return(inp1*inp2);};
+int64_t MOD(int64_t inp1, int64_t inp2) {return(inp1%inp2);};
+int64_t RND(int64_t inp1, int64_t inp2) {return(rand() % inp2 + inp1);};
 
 const  int instructAmmount = 7;
 char *intructionList[7] = {"ADD", "SUB", "DIV", "MUL", "MOD", "RND", "MOV"};
-typedef long long int (*Maths_instruction)(long long int, long long int);
+typedef int64_t (*Maths_instruction)(int64_t, int64_t);
 Maths_instruction MathsInstruct[6] = {ADD, SUB, DIV, MUL, MOD, RND};
 
 // Variable handling shit, linked lists hurt my head
@@ -81,7 +82,7 @@ int Exec(char *Contents) {
     char *firstInput;
     char *secondInput;
     int currentLine = 0;
-    long long int RAX;
+    int64_t RAX;
     // While there is a new line to read:
     while (temp) {
         int isValid = 0;
@@ -109,8 +110,8 @@ int Exec(char *Contents) {
 
                 *secondInput= '\0'; // null terminator, ends first input
                 secondInput++; // so that secondInput isn't just NULL
-                long long int input1;
-                long long int input2;
+                int64_t input1;
+                int64_t input2;
 
                 // Variable handling
                 if (linked_find(firstInput) != NULL  || linked_find(secondInput) != NULL){ // For some reason if input1 is " " it thinks it's in the linked list, but if firstinput is " ", this is technically the correct error
