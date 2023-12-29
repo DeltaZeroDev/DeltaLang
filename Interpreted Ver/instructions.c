@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <stdint.h>
+
 int64_t ADD(int64_t inp1, int64_t inp2) {return(inp1+inp2);};
 int64_t SUB(int64_t inp1, int64_t inp2) {return(inp1-inp2);};
 int64_t DIV(int64_t inp1, int64_t inp2) {return(inp1/inp2);};
@@ -12,8 +13,8 @@ int64_t MUL(int64_t inp1, int64_t inp2) {return(inp1*inp2);};
 int64_t MOD(int64_t inp1, int64_t inp2) {return(inp1%inp2);};
 int64_t RND(int64_t inp1, int64_t inp2) {return(rand() % inp2 + inp1);};
 
-const  int instructAmmount = 7;
-char *intructionList[7] = {"ADD", "SUB", "DIV", "MUL", "MOD", "RND", "MOV"};
+const int instructAmmount = 8;
+char *intructionList[8] = {"ADD", "SUB", "DIV", "MUL", "MOD", "RND", "MOV", "DEF"};
 typedef int64_t (*Maths_instruction)(int64_t, int64_t);
 Maths_instruction MathsInstruct[6] = {ADD, SUB, DIV, MUL, MOD, RND};
 
@@ -105,7 +106,7 @@ int Exec(char *Contents) {
                 secondInput = strchr(firstInput, ' '); // Second input is everything after first input, including space
                 if ((firstInput == NULL || firstInput[1] == '\0')  || (secondInput == NULL || secondInput[1] == '\0')){ // SegFault handler
                     printf("Segmentation fault! (NULL pointer dereference) at line %d in instruction \"%s\"! (this instruction requires 2 inputs)\n", currentLine, temp);
-                    return -1; 
+                    return -1;
                 }
 
                 *secondInput= '\0'; // null terminator, ends first input
